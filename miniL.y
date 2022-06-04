@@ -12,6 +12,7 @@ void yyerror(const char *msg);
 extern int currLine;
 extern int currPos;
 FILE * yyinput;
+int tmp_cnt = 0;
 
 
 enum Type { Integer, Array };
@@ -88,8 +89,8 @@ template <typename T>
 %start input
 %token END FUNCTION BEGIN_PARAMS END_PARAMS BEGIN_LOCALS END_LOCALS BEGIN_BODY END_BODY INTEGER ARRAY ENUM OF IF THEN ELSE FOR WHILE DO BEGINLOOP ENDLOOP CONTINUE READ WRITE AND OR NOT TRUE FALSE RETURN MOD MULT DIV PLUS MINUS EQUAL L_PAREN R_PAREN ENDIF EQ NEQ LT GT LTE GTE SEMICOLON COLON COMMA L_SQUARE_BRACKET R_SQUARE_BRACKET ASSIGN
 %token<sval> IDENT
-%token<sval> NUMBER
-%type <sval> ident
+%token<sval> NUMBER 
+%type <sval> ident term var statement expression multipicative-expr
 %right ASSIGN
 %left OR
 %left AND
@@ -135,39 +136,117 @@ declarations:
 ;
 
 declaration:
-        ident COLON INTEGER 
+        IDENT COLON INTEGER 
         {
-            {printf(". %s\n", $1);}
+           std::string value = $1;
+            if(find(value)){   
+              char* id = $1;
+              const char* msg1 = "Variable \"";
+              const char* msg2 = "\" is already defined";
+              char msg[100];
+              strcpy(msg, msg1);
+              strcat(msg, id);
+              strcat(msg, msg2);
+              yyerror(msg);}
+            else{
+              // add the variable to the symbol table.
+              Type t = Integer;
+              add_variable_to_symbol_table(value, t);
+              printf(". %s\n", $1);
+            }
         }
-        | ident another-ident COLON INTEGER 
-        {printf("declaration -> ident another-ident COLON INTEGER \n");
+        | IDENT another-ident COLON INTEGER 
+        {  std::string value = $1;
+            if(find(value)){   
+              char* id = $1;
+              const char* msg1 = "Variable \"";
+              const char* msg2 = "\" is already defined";
+              char msg[100];
+              strcpy(msg, msg1);
+              strcat(msg, id);
+              strcat(msg, msg2);
+              yyerror(msg);}
+            else{
+              // add the variable to the symbol table.
+              Type t = Integer;
+              add_variable_to_symbol_table(value, t);
+              printf(". %s\n", $1);
+            }
         }
-        | ident COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER 
-        {printf("declaration -> ident COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER \n");
+        | IDENT COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER 
+        {
+            std::string value = $1;
+            if(find(value)){   
+              char* id = $1;
+              const char* msg1 = "Variable \"";
+              const char* msg2 = "\" is already defined";
+              char msg[100];
+              strcpy(msg, msg1);
+              strcat(msg, id);
+              strcat(msg, msg2);
+              yyerror(msg);}
+            else{
+              // add the variable to the symbol table.
+              Type t = Array;
+              add_variable_to_symbol_table(value, t);
+              printf(". [] %s, %d\n", $1, $5);
+            }
         }
         | ident COLON ENUM L_PAREN ident R_PAREN 
-        {printf("declaration -> ident COLON ENUM L_PAREN ident R_PAREN \n");
+        {
         }
         | ident COLON ENUM L_PAREN ident another-ident R_PAREN 
-        {printf("declaration ->  ident COLON ENUM L_PAREN ident  another-ident R_PAREN \n");
+        {
         }
-        | ident another-ident COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER 
-        {printf("declaration -> ident another-ident COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER \n");
+        | IDENT another-ident COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER 
+        {
+          std::string value = $1;
+            if(find(value)){   
+              char* id = $1;
+              const char* msg1 = "Variable \"";
+              const char* msg2 = "\" is already defined";
+              char msg[100];
+              strcpy(msg, msg1);
+              strcat(msg, id);
+              strcat(msg, msg2);
+              yyerror(msg);}
+            else{
+              // add the variable to the symbol table.
+              Type t = Array;
+              add_variable_to_symbol_table(value, t);
+              printf(". [] %s, %d\n", $1, $6);
+            }
         }
         | ident another-ident COLON ENUM L_PAREN ident R_PAREN 
-        {printf("declaration -> ident another-ident COLON ENUM L_PAREN ident R_PAREN \n");
+        {
         } 
         | ident another-ident COLON ENUM L_PAREN ident another-ident R_PAREN 
-        {printf("declaration -> ident another-ident COLON ENUM L_PAREN ident another-ident R_PAREN \n");
+        {
         }
       ;
 
 another-ident: {printf("another-ident->epsilon");}
-      | COMMA ident another-ident {printf("another-ident -> COMMA ident another-ident \n");}
+      | COMMA ident another-ident {  
+            std::string value = $2;
+            if(find(value)){   
+              char* id = $2;
+              const char* msg1 = "Variable \"";
+              const char* msg2 = "\" is already defined";
+              char msg[100];
+              strcpy(msg, msg1);
+              strcat(msg, id);
+              strcat(msg, msg2);
+              yyerror(msg);}
+            else{
+              // add the variable to the symbol table.
+              Type t = Integer;
+              add_variable_to_symbol_table(value, t);
+              printf(". %s\n", $2);
+            }}
       ;
 
-another-declaration: {printf("another-declaration->epsilon");}
-      | declaration SEMICOLON another-declaration {printf("another-declaration -> declaration SEMICOLON another-declaration \n");}
+another-declaration: {}
+      | declaration SEMICOLON another-declaration {}
       ;
 
 statements: 
@@ -175,7 +254,8 @@ statement SEMICOLON
 | statement SEMICOLON statements
 ;
 statement:
-        var ASSIGN expression {printf("statement -> var ASSIGN expression \n");}
+         
+        var {printf("= %s, ", $1);}ASSIGN expression {printf("\n");}   //Keep getting seg fault when trying $3. $1 also prints out full line for some reason.
         | IF bool-expr THEN statement SEMICOLON ENDIF {printf("statement -> IF bool-expr THEN statement SEMICOLON ENDIF \n");}
         | IF bool-expr THEN statement SEMICOLON another-if-statement ENDIF {printf("statement -> IF bool-expr THEN statement SEMICOLON another-if-statement ENDIF \n");}
         | IF bool-expr THEN statement SEMICOLON ELSE statement SEMICOLON ENDIF {printf("statement -> IF bool-expr THEN statement SEMICOLON ELSE statement SEMICOLON ENDIF \n");}
@@ -185,29 +265,85 @@ statement:
         | WHILE bool-expr BEGINLOOP statement SEMICOLON another-statement ENDLOOP {printf("statement -> WHILE bool-expr BEGINLOOP statement SEMICOLON another-statement ENDLOOP \n");}
         | DO BEGINLOOP statement SEMICOLON ENDLOOP WHILE bool-expr {printf("statement -> DO BEGINLOOP statement SEMICOLON ENDLOOP WHILE bool-expr \n");}
         | DO BEGINLOOP statement SEMICOLON another-statement ENDLOOP WHILE bool-expr {printf("statement -> DO BEGINLOOP statement SEMICOLON another-statement ENDLOOP WHILE bool-expr \n");}
-        | READ var {printf("statement -> READ var \n");}
-        | READ var COMMA another-var {printf("statement ->  READ var COMMA another-var \n");}
-        | WRITE var {printf("statement -> WRITE var \n");}
-        | WRITE var COMMA another-var {printf("statement -> WRITE var COMMA another-var \n");}
-        | CONTINUE {printf("statement -> CONTINUE \n");}
-        | RETURN expression {printf("statement -> RETURN expression \n");}
+        | READ var {
+          std::string value = $2;
+            if(find(value)){   
+              char* id = $2;
+              const char* msg1 = "Variable \"";
+              const char* msg2 = "\" not defined";
+              char msg[100];
+              strcpy(msg, msg1);
+              strcat(msg, id);
+              strcat(msg, msg2);
+              yyerror(msg);}
+            else{
+              printf(".< %s\n", $2);
+            }
+        }
+        | READ var COMMA another-var {
+           std::string value = $2;
+            if(find(value)){   
+              char* id = $2;
+              const char* msg1 = "Variable \"";
+              const char* msg2 = "\" not defined";
+              char msg[100];
+              strcpy(msg, msg1);
+              strcat(msg, id);
+              strcat(msg, msg2);
+              yyerror(msg);}
+            else{
+              printf(".< %s\n", $2);
+            }
+          }
+        | WRITE var {
+            std::string value = $2;
+            if(find(value)){   
+              char* id = $2;
+              const char* msg1 = "Variable \"";
+              const char* msg2 = "\" not defined";
+              char msg[100];
+              strcpy(msg, msg1);
+              strcat(msg, id);
+              strcat(msg, msg2);
+              yyerror(msg);}
+            else{
+              printf(".> %s\n", $2);
+            }
+            }
+        | WRITE var COMMA another-var {std::string value = $2;
+            if(find(value)){   
+              char* id = $2;
+              const char* msg1 = "Variable \"";
+              const char* msg2 = "\" not defined";
+              char msg[100];
+              strcpy(msg, msg1);
+              strcat(msg, id);
+              strcat(msg, msg2);
+              yyerror(msg);}
+            else{
+              printf(".> %s\n", $2);
+            }}
+        | CONTINUE {}
+        | RETURN expression { 
+            printf("ret %s\n", $2);
+            }
       ;
 
 another-var:
-         var {printf("another-var -> var \n");}
-         | var COMMA another-var {printf("another-var -> var COMMA another-var \n");}
+         var {}
+         | var COMMA another-var {}
       ;
 
-another-statement: {printf("another-statement->epsilon \n");}
-        | statement SEMICOLON another-statement {printf("another-statement  -> statement SEMICOLON another-statement \n");}
+another-statement: {}
+        | statement SEMICOLON another-statement {}
       ;
 
-another-if-statement: {printf("another-if-statement->epsilon \n");}
-        | statement SEMICOLON another-if-statement {printf("another-if-statement  -> statement SEMICOLON another-if-statement \n");}
+another-if-statement: {}
+        | statement SEMICOLON another-if-statement {}
       ;
 
-another-else-statement: {printf("another-else-statement->epsilon \n");}
-        | statement SEMICOLON another-else-statement {printf("another-else-statement  -> statement SEMICOLON another-else-statement \n");}
+another-else-statement: {}
+        | statement SEMICOLON another-else-statement {}
       ;
 
 bool-expr: 
@@ -244,8 +380,8 @@ term:
       SUB var {printf("term -> SUB var \n");}
       | SUB NUMBER  {printf("term -> SUB NUMBER \n");}
       | SUB L_PAREN expression R_PAREN {printf("term -> SUB L_PAREN expression R_PAREN \n");}
-      | var {printf("term -> var \n");}
-      | NUMBER {printf("term -> NUMBER \n"); }
+      | var {$$ = $1;}
+      | NUMBER {$$ = $1;}
       | L_PAREN expression R_PAREN {printf("term -> L_PAREN expression R_PAREN \n");}
       | ident L_PAREN R_PAREN {printf(" term -> ident L_PAREN R_PAREN \n");}
       | ident L_PAREN expression R_PAREN {printf("term -> ident L_PAREN expression R_PAREN \n");}
@@ -257,25 +393,25 @@ another-expression: {printf("another-expression->epsilon");}
     ;
 
 expression:
-      multipicative-expr {printf("expression -> multipicative-expr \n");}
-      | multipicative-expr ADD expression {printf("expression -> multipicative-expr ADD expression \n");}
+      multipicative-expr {}
+      | multipicative-expr ADD expression {}
       | multipicative-expr SUB expression {printf("expression -> multipicative-expr SUB expression \n");}
     ;
 
 multipicative-expr:
-          term {printf("multipicative-expr -> term \n");}
-          | term MULT multipicative-expr {printf("multipicative-expr -> term MULT multipicative-expr \n");}
+          term {}
+          | term MULT multipicative-expr {}
           | term DIV multipicative-expr {printf("multipicative-expr -> term DIV multipicative-expr \n");}
           | term MOD multipicative-expr {printf("multipicative-expr -> term MOD multipicative-expr \n");}
 ;
 
 var:
-      ident {printf("var -> ident \n");}
-      | ident L_SQUARE_BRACKET expression R_SQUARE_BRACKET {printf("var -> ident L_SQUARE_BRACKET expression R_SQUARE_BRACKET \n");}
+      ident {}
+      | ident L_SQUARE_BRACKET expression R_SQUARE_BRACKET {}
     ;
   
 ident:
-      IDENT { $$ = $1;}
+      IDENT { $$ = $1; }
    ;
 
 %% 
@@ -293,4 +429,5 @@ int main(int argc, char **argv) {
 }
 void yyerror(const char *msg) {
  printf("** Line %d, position %d: %s\n", currLine, currPos, msg);
+ exit(1);
 }
